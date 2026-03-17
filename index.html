@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cine-Search Pro</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <h1>Cine-Search Pro</h1>
+
+    <input 
+        id="searchBox" 
+        type="text" 
+        placeholder="Search for movies..."
+    />
+
+    <div id="app" data-loading="false">
+
+        <div class="loading-spinner">
+            Loading...
+        </div>
+
+        <div id="results"></div>
+
+        <div id="details">
+            <h2>Movie Details</h2>
+            <div id="movie-info"></div>
+        </div>
+
+    </div>
+
+    <!-- TEMPLATE (required for DocumentFragment pattern) -->
+    <template id="movieTemplate">
+        <div class="movie-item">
+            <span class="title"></span>
+        </div>
+    </template>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
