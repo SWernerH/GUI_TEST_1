@@ -1,98 +1,97 @@
-import { buildHighlightedTitle } from './utils.js';
+import { highlightTitle, getImageUrl } from './utils.js';
 
 const API_KEY = "58cca5da2d71b564b61032fb0a517020";
 const BASE_URL = "https://api.themoviedb.org/3/search/movie";
 
-export class SearchComponent {
-    constructor({ input, results, template, appContainer }) {
-        this.input = input;
-        this.results = results;
-        this.template = template;
-        this.appContainer = appContainer;
+let cache = new Map();
+let abortController = null;
+let debounceTimer = null;
 
-        this.cache = new Map();
-        this.abortController = null;
-        this.debounceTimer = null;
+export function initSearch({ input, results, template, appContainer, details }) {
 
-        this.init();
+    input.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+
+        debounceTimer = setTimeout(() => {
+            handleSearch(e.target.value.trim(), results, template, appContainer, details);
+        }, 300);
+    });
+}
+
+async function handleSearch(query, results, template, appContainer, details) {
+    if (!query) return;
+
+    console.log("Searching:", query);
+
+    if (cache.has(query)) {
+        renderResults(cache.get(query), query, results, template, details);
+        return;
     }
 
-    init() {
-        this.input.addEventListener('input', (e) => {
-            clearTimeout(this.debounceTimer);
-
-            this.debounceTimer = setTimeout(() => {
-                this.search(e.target.value.trim());
-            }, 300);
-        });
+    if (abortController) {
+        abortController.abort();
     }
 
-    async search(query) {
-        if (!query) return;
+    abortController = new AbortController();
 
-        console.log("Searching for:", query);
+    appContainer.setAttribute('data-loading', 'true');
 
-        // CACHE CHECK
-        if (this.cache.has(query)) {
-            console.log("Loaded from cache");
-            this.render(this.cache.get(query), query);
-            return;
-        }
+    try {
+        const url = `${BASE_URL}?api_key=${API_KEY}&query=${encodeURIComponent(query)}`;
 
-        // ABORT PREVIOUS REQUEST
-        if (this.abortController) {
-            console.log("Aborting previous request");
-            this.abortController.abort();
-        }
-
-        this.abortController = new AbortController();
-
-        this.appContainer.setAttribute('data-loading', 'true');
-
-        try {
-            const url = `${BASE_URL}?api_key=${API_KEY}&query=${encodeURIComponent(query)}`;
-
-            const res = await fetch(url, {
-                signal: this.abortController.signal
-            });
-
-            const data = await res.json();
-
-            console.log("API Data:", data);
-
-            const results = data.results || [];
-
-            this.cache.set(query, results);
-
-            this.render(results, query);
-
-        } catch (err) {
-            if (err.name !== "AbortError") {
-                console.error("Error:", err);
-            }
-        }
-
-        this.appContainer.setAttribute('data-loading', 'false');
-    }
-
-    render(results, query) {
-        const frag = new DocumentFragment();
-
-        results.forEach(movie => {
-            const clone = this.template.content.cloneNode(true);
-
-            const titleEl = clone.querySelector('.title');
-
-            const highlighted = buildHighlightedTitle(movie.title, query);
-
-            titleEl.appendChild(highlighted);
-
-            frag.appendChild(clone);
+        const res = await fetch(url, {
+            signal: abortController.signal
         });
 
-        this.results.innerHTML = '';
-        this.results.appendChild(frag);
+        const data = await res.json();
+        const movies = data.results || [];
 
-        console.log("Rendered:", results.length);
+        cache.set(query, movies);
+
+        renderResults(movies, query, results, template, details);
+
+    } catch (err) {
+        if (err.name !== "AbortError") {
+            console.error(err);
+        }
     }
+
+    appContainer.setAttribute('data-loading', 'false');
+}
+
+function renderResults(movies, query, results, template, details) {
+    const frag = new DocumentFragment();
+
+    movies.forEach(movie => {
+        const clone = template.content.cloneNode(true);
+
+        const titleEl = clone.querySelector('.title');
+        const imgEl = clone.querySelector('.poster');
+
+        // Title highlight
+        titleEl.appendChild(highlightTitle(movie.title, query));
+
+        // Poster (flyer)
+        imgEl.src = getImageUrl(movie.poster_path, "w200");
+
+        // Click → show banner
+        clone.querySelector('.movie-item').addEventListener('click', () => {
+            showDetails(movie, details);
+        });
+
+        frag.appendChild(clone);
+    });
+
+    results.innerHTML = '';
+    results.appendChild(frag);
+}
+
+function showDetails(movie, details) {
+    const banner = getImageUrl(movie.backdrop_path, "w780");
+
+    details.innerHTML = `
+        <h2>${movie.title}</h2>
+        <img src="${banner}" style="width:100%; margin-top:10px;" />
+        <p>${movie.overview || "No description available."}</p>
+    `;
 }
