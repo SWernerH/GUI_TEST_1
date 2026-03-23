@@ -25,6 +25,8 @@ h1 {
 }
 
 .movie-item {
+    display: flex;
+    gap: 10px;
     padding: 10px;
     border-bottom: 1px solid #333;
     cursor: pointer;
@@ -33,13 +35,8 @@ h1 {
 .movie-item:hover {
     background-color: #1f1f1f;
 }
-
-.movie-item {
-    display: flex;
-    gap: 10px;
-    padding: 10px;
-    border-bottom: 1px solid #333;
-    cursor: pointer;
+.movie-item.active {
+    background-color: #2a2a2a;
 }
 
 .poster {
@@ -71,4 +68,125 @@ h1 {
     padding: 15px;
     background-color: #1a1a1a;
     border-radius: 8px;
+}
+
+.hint {
+    text-align: center;
+    color: #aaaaaa;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.suggestions {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 760px;
+}
+
+.suggestions .movie-item {
+    margin: 6px 0;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.suggestions .movie-item:hover {
+    background-color: #1f1f1f;
+}
+
+.results-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-top: 20px;
+}
+
+.grid-card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 10px;
+    box-shadow: 0 1px 8px rgba(0,0,0,.3);
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.grid-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0,0,0,.5);
+}
+
+.grid-poster {
+    width: 100%;
+    display: block;
+    height: auto;
+}
+
+.grid-card h3 {
+    padding: 10px;
+    font-size: 1rem;
+    margin: 0;
+    color: #fff;
+}
+
+.movie-details .banner {
+    width: 100%;
+    height: 220px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 0 0 10px 10px;
+    margin-bottom: 20px;
+    border: 1px solid #222;
+}
+
+.movie-details .details-content {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+.poster-large {
+    width: 220px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.text-block {
+    flex: 1;
+    color: #eee;
+}
+
+.text-block h2 {
+    margin-top: 0;
+}
+
+.text-block .meta {
+    color: #9f9f9f;
+    font-size: 0.95rem;
+    margin: 8px 0 14px;
+}
+
+.no-results, .error {
+    text-align: center;
+    margin-top: 20px;
+    color: #ddd;
+}
+
+header .actions {
+    margin-top: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+}
+
+header .actions a, .back-link {
+    color: #88c0ff;
+    text-decoration: none;
+}
+
+header .actions a:hover, .back-link:hover {
+    text-decoration: underline;
 }

@@ -6,25 +6,64 @@ const BASE_URL = "https://api.themoviedb.org/3/search/movie";
 let cache = new Map();
 let abortController = null;
 let debounceTimer = null;
+let activeIndex = -1;
 
-export function initSearch({ input, results, template, appContainer, details }) {
+export function initSearch({ input, suggestions, template }) {
 
     input.addEventListener('input', (e) => {
         clearTimeout(debounceTimer);
 
         debounceTimer = setTimeout(() => {
-            handleSearch(e.target.value.trim(), results, template, appContainer, details);
+            handleSearch(e.target.value.trim(), suggestions, template);
         }, 300);
+    });
+
+    input.addEventListener('keydown', (e) => {
+        const items = suggestions.querySelectorAll('.movie-item');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = (activeIndex + 1) % items.length;
+            updateActive(items);
+        }
+
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = (activeIndex - 1 + items.length) % items.length;
+            updateActive(items);
+        }
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
+
+            if (items[activeIndex]) {
+                items[activeIndex].click();
+                return;
+            }
+
+            const query = input.value.trim();
+            if (query) {
+                window.location.href = `results.html?q=${encodeURIComponent(query)}`;
+            }
+        }
     });
 }
 
-async function handleSearch(query, results, template, appContainer, details) {
+function updateActive(items) {
+    items.forEach(item => item.classList.remove('active'));
+    if (items[activeIndex]) {
+        items[activeIndex].classList.add('active');
+    }
+}
+
+async function handleSearch(query, suggestions, template) {
+    suggestions.innerHTML = '';
+    activeIndex = -1;
+
     if (!query) return;
 
-    console.log("Searching:", query);
-
     if (cache.has(query)) {
-        renderResults(cache.get(query), query, results, template, details);
+        renderSuggestions(cache.get(query), query, suggestions, template);
         return;
     }
 
@@ -34,64 +73,52 @@ async function handleSearch(query, results, template, appContainer, details) {
 
     abortController = new AbortController();
 
-    appContainer.setAttribute('data-loading', 'true');
-
     try {
+        document.body.setAttribute('data-loading', 'true');
+
         const url = `${BASE_URL}?api_key=${API_KEY}&query=${encodeURIComponent(query)}`;
-
-        const res = await fetch(url, {
-            signal: abortController.signal
-        });
-
+        const res = await fetch(url, { signal: abortController.signal });
         const data = await res.json();
-        const movies = data.results || [];
 
+        const movies = data.results || [];
         cache.set(query, movies);
 
-        renderResults(movies, query, results, template, details);
+        renderSuggestions(movies, query, suggestions, template);
 
     } catch (err) {
-        if (err.name !== "AbortError") {
+        if (err.name !== 'AbortError') {
             console.error(err);
         }
+    } finally {
+        document.body.setAttribute('data-loading', 'false');
     }
-
-    appContainer.setAttribute('data-loading', 'false');
 }
 
-function renderResults(movies, query, results, template, details) {
+function renderSuggestions(movies, query, suggestions, template) {
+    if (!movies.length) {
+        suggestions.innerHTML = '<li class="no-results">No matches found.</li>';
+        return;
+    }
+
     const frag = new DocumentFragment();
 
-    movies.forEach(movie => {
+    movies.slice(0, 6).forEach(movie => {
         const clone = template.content.cloneNode(true);
 
         const titleEl = clone.querySelector('.title');
         const imgEl = clone.querySelector('.poster');
+        const item = clone.querySelector('.movie-item');
 
-        // Title highlight
         titleEl.appendChild(highlightTitle(movie.title, query));
+        imgEl.src = getImageUrl(movie.poster_path, 'w154');
 
-        // Poster (flyer)
-        imgEl.src = getImageUrl(movie.poster_path, "w200");
-
-        // Click → show banner
-        clone.querySelector('.movie-item').addEventListener('click', () => {
-            showDetails(movie, details);
+        item.addEventListener('click', () => {
+            window.location.href = `details.html?id=${movie.id}`;
         });
 
         frag.appendChild(clone);
     });
 
-    results.innerHTML = '';
-    results.appendChild(frag);
-}
-
-function showDetails(movie, details) {
-    const banner = getImageUrl(movie.backdrop_path, "w780");
-
-    details.innerHTML = `
-        <h2>${movie.title}</h2>
-        <img src="${banner}" style="width:100%; margin-top:10px;" />
-        <p>${movie.overview || "No description available."}</p>
-    `;
+    suggestions.innerHTML = '';
+    suggestions.appendChild(frag);
 }
